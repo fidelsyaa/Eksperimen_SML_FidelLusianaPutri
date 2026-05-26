@@ -1,33 +1,69 @@
-import os
 import pandas as pd
 import numpy as np
 
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import (
+    LabelEncoder,
+    StandardScaler
+)
 
 def preprocess_data():
 
-    # load dataset
-    df = pd.read_csv('stroke_raw/stroke.csv')
+    print("Memulai preprocessing...")
 
-    # drop id
-    df.drop('id', axis=1, inplace=True)
+    # ==================================================
+    # LOAD DATASET
+    # ==================================================
 
-    # handling missing value
-    df['bmi'].fillna(
-        df['bmi'].median(),
+    df = pd.read_csv(
+        'mental_raw/mental.csv'
+    )
+
+    print("Dataset berhasil dimuat")
+    print("Shape awal:", df.shape)
+
+    # ==================================================
+    # MISSING VALUE HANDLING
+    # ==================================================
+
+    numeric_cols = [
+        'age',
+        'stress_level',
+        'sleep_hours',
+        'physical_activity_days',
+        'depression_score',
+        'anxiety_score',
+        'social_support_score',
+        'productivity_score'
+    ]
+
+    for col in numeric_cols:
+
+        df[col].fillna(
+            df[col].median(),
+            inplace=True
+        )
+
+    print("Missing value berhasil ditangani")
+
+    # ==================================================
+    # REMOVE DUPLICATE
+    # ==================================================
+
+    before = df.shape[0]
+
+    df.drop_duplicates(
         inplace=True
     )
 
-    # remove duplicate
-    df.drop_duplicates(inplace=True)
+    after = df.shape[0]
 
-    # outlier handling
-    numeric_cols = [
-        'age',
-        'avg_glucose_level',
-        'bmi'
-    ]
+    print(
+        f"Duplicate dihapus: {before - after}"
+    )
+
+    # ==================================================
+    # OUTLIER HANDLING
+    # ==================================================
 
     for col in numeric_cols:
 
@@ -44,11 +80,18 @@ def preprocess_data():
             (df[col] <= upper)
         ]
 
-    # binning
-    bins = [0, 18, 40, 60, 100]
+    print("Outlier berhasil ditangani")
+    print("Shape setelah outlier:", df.shape)
+
+    # ==================================================
+    # BINNING
+    # ==================================================
+
+    bins = [0, 18, 30, 45, 60, 100]
 
     labels = [
         'Teen',
+        'Young Adult',
         'Adult',
         'Middle Age',
         'Senior'
@@ -60,52 +103,87 @@ def preprocess_data():
         labels=labels
     )
 
-    # encoding
+    print("Binning age berhasil")
+
+    # ==================================================
+    # ENCODING
+    # ==================================================
+
     categorical_cols = [
         'gender',
-        'ever_married',
-        'work_type',
-        'Residence_type',
-        'smoking_status',
+        'employment_status',
+        'work_environment',
+        'mental_health_history',
+        'seeks_treatment',
+        'mental_health_risk',
         'age_group'
     ]
 
     le = LabelEncoder()
 
     for col in categorical_cols:
-        df[col] = le.fit_transform(df[col])
 
-    # split feature target
-    X = df.drop('stroke', axis=1)
+        df[col] = le.fit_transform(
+            df[col]
+        )
 
-    y = df['stroke']
+    print("Encoding berhasil")
 
-    # scaling
+    # ==================================================
+    # SPLIT FEATURE TARGET
+    # ==================================================
+
+    X = df.drop(
+        'mental_health_risk',
+        axis=1
+    )
+
+    y = df[
+        'mental_health_risk'
+    ]
+
+    # ==================================================
+    # SCALING
+    # ==================================================
+
     scaler = StandardScaler()
 
     X_scaled = scaler.fit_transform(X)
 
-    # processed dataframe
+    # ==================================================
+    # DATAFRAME FINAL
+    # ==================================================
+
     processed_df = pd.DataFrame(
         X_scaled,
         columns=X.columns
     )
 
-    processed_df['stroke'] = y.values
+    processed_df[
+        'mental_health_risk'
+    ] = y.values
 
-    # create output folder
-    output_dir = 'preprocessing/stroke_preprocessing'
+    # ==================================================
+    # SAVE DATASET
+    # ==================================================
 
-    os.makedirs(output_dir, exist_ok=True)
-
-    # save dataset
     processed_df.to_csv(
-        os.path.join(output_dir, 'stroke_clean.csv'),
+        'preprocessing/mental_preprocessing/mental_clean.csv',
         index=False
     )
 
-    print("Preprocessing berhasil!")
-    print(processed_df.head())
+    print("Dataset preprocessing berhasil disimpan")
+
+    print(
+        "Lokasi: preprocessing/mental_preprocessing/mental_clean.csv"
+    )
+
+    print("Preprocessing selesai!")
+
+# ======================================================
+# MAIN
+# ======================================================
 
 if __name__ == "__main__":
+
     preprocess_data()
